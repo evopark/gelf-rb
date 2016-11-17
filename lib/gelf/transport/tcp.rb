@@ -19,7 +19,7 @@ module GELF
       def send(message)
         return if @addresses.empty?
         loop do
-          connected = @sockets.reject(&:closed?)
+          connected = @sockets.reject { |s| s.nil? || s.closed? }
           reconnect_all if connected.empty?
           break if write_any(connected, message)
         end
@@ -33,7 +33,11 @@ module GELF
 
       def reconnect_all
         @sockets = @sockets.each_with_index.map do |old_socket, index|
-          old_socket.closed? ? connect(*@addresses[index]) : old_socket
+          if old_socket.nil? || old_socket.closed?
+            connect(*@addresses[index])
+          else
+            old_socket
+          end
         end
       end
 
